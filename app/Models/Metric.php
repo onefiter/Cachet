@@ -12,15 +12,20 @@
 namespace CachetHQ\Cachet\Models;
 
 use AltThree\Validator\ValidatingTrait;
+use AltThree\Validator\ValidationException;
+use CachetHQ\Cachet\Models\Traits\HasMeta;
 use CachetHQ\Cachet\Models\Traits\SortableTrait;
 use CachetHQ\Cachet\Presenters\MetricPresenter;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\MessageBag;
 use McCool\LaravelAutoPresenter\HasPresenter;
 
 class Metric extends Model implements HasPresenter
 {
-    use SortableTrait, ValidatingTrait;
+    use HasMeta,
+        SortableTrait,
+        ValidatingTrait;
 
     /**
      * The calculation type of sum.
@@ -56,6 +61,13 @@ class Metric extends Model implements HasPresenter
      * @var int
      */
     const VISIBLE_HIDDEN = 2;
+
+    /**
+     * Array of acceptable threshold minutes.
+     *
+     * @var int[]
+     */
+    const ACCEPTABLE_THRESHOLDS = [1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60];
 
     /**
      * The model's attributes.
@@ -163,7 +175,7 @@ class Metric extends Model implements HasPresenter
      */
     public function points()
     {
-        return $this->hasMany(MetricPoint::class, 'metric_id', 'id');
+        return $this->hasMany(MetricPoint::class, 'metric_id', 'id')->latest();
     }
 
     /**
@@ -175,7 +187,7 @@ class Metric extends Model implements HasPresenter
      */
     public function scopeDisplayable(Builder $query)
     {
-        return $query->where('display_chart', '=', true)->where('visible', '!=', self::VISIBLE_HIDDEN);
+        return $query->where('display_chart', '=', true)->where('visible', '<>', self::VISIBLE_HIDDEN);
     }
 
     /**
@@ -198,6 +210,26 @@ class Metric extends Model implements HasPresenter
     public function getShouldDisplayAttribute()
     {
         return $this->display_chart;
+    }
+
+    /**
+     * Validate the model before save.
+     *
+     * @throws \AltThree\Validator\ValidationException
+     *
+     * @return void
+     */
+    public function validate()
+    {
+        $messages = [];
+
+        if (60 % $this->threshold !== 0) {
+            $messages[] = 'Threshold must divide by 60.';
+        }
+
+        if ($messages) {
+            throw new ValidationException(new MessageBag($messages));
+        }
     }
 
     /**

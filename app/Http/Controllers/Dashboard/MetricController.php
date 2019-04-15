@@ -12,7 +12,7 @@
 namespace CachetHQ\Cachet\Http\Controllers\Dashboard;
 
 use AltThree\Validator\ValidationException;
-use CachetHQ\Cachet\Bus\Commands\Metric\AddMetricCommand;
+use CachetHQ\Cachet\Bus\Commands\Metric\CreateMetricCommand;
 use CachetHQ\Cachet\Bus\Commands\Metric\RemoveMetricCommand;
 use CachetHQ\Cachet\Bus\Commands\Metric\UpdateMetricCommand;
 use CachetHQ\Cachet\Models\Metric;
@@ -45,7 +45,8 @@ class MetricController extends Controller
     public function showAddMetric()
     {
         return View::make('dashboard.metrics.add')
-            ->withPageTitle(trans('dashboard.metrics.add.title').' - '.trans('dashboard.dashboard'));
+            ->withPageTitle(trans('dashboard.metrics.add.title').' - '.trans('dashboard.dashboard'))
+            ->withAcceptableThresholds(Metric::ACCEPTABLE_THRESHOLDS);
     }
 
     /**
@@ -70,7 +71,7 @@ class MetricController extends Controller
         $metricData = Binput::get('metric');
 
         try {
-            dispatch(new AddMetricCommand(
+            execute(new CreateMetricCommand(
                 $metricData['name'],
                 $metricData['suffix'],
                 $metricData['description'],
@@ -114,7 +115,7 @@ class MetricController extends Controller
      */
     public function deleteMetricAction(Metric $metric)
     {
-        dispatch(new RemoveMetricCommand($metric));
+        execute(new RemoveMetricCommand($metric));
 
         return cachet_redirect('dashboard.metrics')
             ->withSuccess(sprintf('%s %s', trans('dashboard.notifications.awesome'), trans('dashboard.metrics.delete.success')));
@@ -131,7 +132,8 @@ class MetricController extends Controller
     {
         return View::make('dashboard.metrics.edit')
             ->withPageTitle(trans('dashboard.metrics.edit.title').' - '.trans('dashboard.dashboard'))
-            ->withMetric($metric);
+            ->withMetric($metric)
+            ->withAcceptableThresholds(Metric::ACCEPTABLE_THRESHOLDS);
     }
 
     /**
@@ -144,7 +146,7 @@ class MetricController extends Controller
     public function editMetricAction(Metric $metric)
     {
         try {
-            dispatch(new UpdateMetricCommand(
+            execute(new UpdateMetricCommand(
                 $metric,
                 Binput::get('name', null, false),
                 Binput::get('suffix', null, false),

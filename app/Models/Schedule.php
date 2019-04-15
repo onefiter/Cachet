@@ -12,16 +12,28 @@
 namespace CachetHQ\Cachet\Models;
 
 use AltThree\Validator\ValidatingTrait;
+use CachetHQ\Cachet\Models\Traits\HasMeta;
 use CachetHQ\Cachet\Models\Traits\SearchableTrait;
 use CachetHQ\Cachet\Models\Traits\SortableTrait;
 use CachetHQ\Cachet\Presenters\SchedulePresenter;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use McCool\LaravelAutoPresenter\HasPresenter;
 
+/**
+ * This is the schedule class.
+ *
+ * @author James Brooks <james@alt-three.com>
+ */
 class Schedule extends Model implements HasPresenter
 {
-    use SearchableTrait, SortableTrait, ValidatingTrait;
+    use HasMeta,
+        SearchableTrait,
+        SoftDeletes,
+        SortableTrait,
+        ValidatingTrait;
 
     /**
      * The upcoming status.
@@ -45,6 +57,16 @@ class Schedule extends Model implements HasPresenter
     const COMPLETE = 2;
 
     /**
+     * The model's attributes.
+     *
+     * @var string[]
+     */
+    protected $attributes = [
+        'status'       => self::UPCOMING,
+        'completed_at' => null,
+    ];
+
+    /**
      * The attributes that should be casted to native types.
      *
      * @var string[]
@@ -53,8 +75,8 @@ class Schedule extends Model implements HasPresenter
         'name'         => 'string',
         'message'      => 'string',
         'status'       => 'int',
-        'scheduled_at' => 'date',
-        'completed_at' => 'date',
+        'scheduled_at' => 'datetime',
+        'completed_at' => 'datetime',
     ];
 
     /**
@@ -117,6 +139,30 @@ class Schedule extends Model implements HasPresenter
     protected $with = ['components'];
 
     /**
+     * Get the components relation.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     */
+    public function components()
+    {
+        return $this->hasMany(ScheduleComponent::class);
+    }
+
+    /**
+     * Scope schedules that are in progress.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeInProgress(Builder $query)
+    {
+        return $query->where('scheduled_at', '<=', Carbon::now())->where('status', '<>', self::COMPLETE)->where(function ($query) {
+            $query->whereNull('completed_at')->orWhere('completed_at', '>', Carbon::now());
+        });
+    }
+
+    /**
      * Scopes schedules to those in the future.
      *
      * @param \Illuminate\Database\Eloquent\Builder $query
@@ -138,16 +184,6 @@ class Schedule extends Model implements HasPresenter
     public function scopePastSchedules($query)
     {
         return $query->where('status', '<', self::COMPLETE)->where('scheduled_at', '<=', Carbon::now());
-    }
-
-    /**
-     * Get the components relation.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function components()
-    {
-        return $this->hasMany(ScheduleComponent::class);
     }
 
     /**

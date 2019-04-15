@@ -13,7 +13,7 @@
 <div class="content-wrapper">
     <div class="row">
         <div class="col-md-12">
-            @include('dashboard.partials.errors')
+            @include('partials.errors')
             <form class="form-vertical" name="MetricsForm" role="form" method="POST">
                 <input type="hidden" name="_token" value="{{ csrf_token() }}">
                 <fieldset>
@@ -57,7 +57,11 @@
                     </div>
                     <div class="form-group">
                         <label for="metric-places">{{ trans('forms.metrics.threshold') }}</label>
-                        <input type="number" min="0" max="100" class="form-control" name="metric[threshold]" id="metric-threshold" required value="{{ Binput::old('metric.threshold') }}" placeholder="{{ trans('forms.metrics.threshold') }}">
+                        <select name="metric[threshold]" class="form-control" required>
+                            @foreach ($acceptableThresholds as $threshold)
+                            <option {{ (int) Binput::old('metric.threshold') === $threshold ? 'selected' : null }}>{{ $threshold }}</option>
+                            @endforeach
+                        </select>
                     </div>
                     <div class="checkbox">
                         <label>

@@ -9,9 +9,32 @@
  * file that was distributed with this source code.
  */
 
+use CachetHQ\Cachet\Settings\Repository;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Request;
 use Jenssegers\Date\Date;
+
+if (!function_exists('setting')) {
+    /**
+     * Get a setting, or the default value.
+     *
+     * @param string $name
+     * @param mixed  $default
+     *
+     * @return mixed
+     */
+    function setting($name, $default = null)
+    {
+        static $settings = [];
+
+        if (isset($settings[$name])) {
+            return $settings[$name];
+        }
+
+        return $settings[$name] = app(Repository::class)->get($name, $default);
+    }
+}
 
 if (!function_exists('set_active')) {
     /**
@@ -100,30 +123,6 @@ if (!function_exists('color_contrast')) {
     }
 }
 
-if (!function_exists('array_numeric_sort')) {
-    /**
-     * Numerically sort an array based on a specific key.
-     *
-     * @param array  $array
-     * @param string $key
-     *
-     * @return array
-     */
-    function array_numeric_sort(array $array = [], $key = 'order')
-    {
-        uasort($array, function ($a, $b) use ($key) {
-            $a = array_get($a, $key, PHP_INT_MAX);
-            $b = array_get($b, $key, PHP_INT_MAX);
-
-            $default = PHP_MAJOR_VERSION < 7 ? 1 : 0;
-
-            return $a < $b ? -1 : ($a === $b ? $default : 1);
-        });
-
-        return $array;
-    }
-}
-
 if (!function_exists('cachet_route')) {
     /**
      * Generate a URL to a named route, which resides in a given domain.
@@ -162,60 +161,16 @@ if (!function_exists('cachet_redirect')) {
     }
 }
 
-if (!function_exists('datetime_to_moment')) {
+if (!function_exists('execute')) {
     /**
-     * Convert PHP datetimes to moment.js formats.
+     * Send the given command to the dispatcher for execution.
      *
-     * Thanks to http://stackoverflow.com/a/30192680/394013
+     * @param object $command
      *
-     * @param string $format
-     *
-     * @return string
+     * @return void
      */
-    function datetime_to_moment($format)
+    function execute($command)
     {
-        $replacements = [
-            'd' => 'DD',
-            'D' => 'ddd',
-            'j' => 'D',
-            'l' => 'dddd',
-            'N' => 'E',
-            'S' => 'o',
-            'w' => 'e',
-            'z' => 'DDD',
-            'W' => 'W',
-            'F' => 'MMMM',
-            'm' => 'MM',
-            'M' => 'MMM',
-            'n' => 'M',
-            't' => '', // no equivalent
-            'L' => '', // no equivalent
-            'o' => 'YYYY',
-            'Y' => 'YYYY',
-            'y' => 'YY',
-            'a' => 'a',
-            'A' => 'A',
-            'B' => '', // no equivalent
-            'g' => 'h',
-            'G' => 'H',
-            'h' => 'hh',
-            'H' => 'HH',
-            'i' => 'mm',
-            's' => 'ss',
-            'u' => 'SSS',
-            'e' => 'zz', // deprecated since version 1.6.0 of moment.js
-            'I' => '', // no equivalent
-            'O' => '', // no equivalent
-            'P' => '', // no equivalent
-            'T' => '', // no equivalent
-            'Z' => '', // no equivalent
-            'c' => '', // no equivalent
-            'r' => '', // no equivalent
-            'U' => 'X',
-        ];
-
-        $momentFormat = strtr($format, $replacements);
-
-        return $momentFormat;
+        return app(Dispatcher::class)->dispatchNow($command);
     }
 }

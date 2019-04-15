@@ -11,8 +11,8 @@
 
 namespace CachetHQ\Cachet\Presenters;
 
-use CachetHQ\Cachet\Dates\DateFactory;
 use CachetHQ\Cachet\Presenters\Traits\TimestampsTrait;
+use CachetHQ\Cachet\Services\Dates\DateFactory;
 use Illuminate\Contracts\Support\Arrayable;
 use McCool\LaravelAutoPresenter\BasePresenter;
 
@@ -53,7 +53,7 @@ class ComponentPresenter extends BasePresenter implements Arrayable
      */
     public function tags()
     {
-        return $this->wrappedObject->tags->pluck('name', 'slug');
+        return $this->wrappedObject->tags->pluck('tag.name', 'tag.slug');
     }
 
     /**
